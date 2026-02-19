@@ -7,7 +7,6 @@ yarn-error.log
 # On ignore les fichiers de prod ou locaux spécifiques
 .env.production
 .env.local
-# On autorise le .env de dev pour le partager
 .env
 
 # IDEs
