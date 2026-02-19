@@ -1,0 +1,28 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment variables
+# On ignore les fichiers de prod ou locaux spécifiques
+.env.production
+.env.local
+# On autorise le .env de dev pour le partager
+.env
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Build output
+dist/
+build/
+coverage/
