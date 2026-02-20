@@ -46,10 +46,15 @@ pool.on('error', (err) => {
     console.error('❌ Erreur PostgreSQL', err);
 });
 
+let initPromise = Promise.resolve(); // Promesse résolue par défaut
+
 if (process.env.DB_FORCE_RESTART === 'true' || process.env.NODE_ENV === 'test' || process.env.CI === 'true') {
-    initDB();
+    initPromise = initDB(); // On capture la promesse d'initialisation
 } else {
     console.log('ℹ️  Saut de l\'initialisation de la base de données (mode persistant).');
 }
+
+// On attache la promesse au pool pour pouvoir l'attendre dans les tests
+pool.ready = initPromise;
 
 module.exports = pool;

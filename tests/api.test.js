@@ -4,6 +4,11 @@ const db = require('../src/db');      // Ta connexion DB
 
 describe('Vérification des routes publiques', () => {
 
+    // On attend que la DB soit initialisée (tables créées) avant de lancer les tests
+    beforeAll(async () => {
+        await db.ready;
+    });
+
     afterAll(async () => {
         await db.end();
     });
