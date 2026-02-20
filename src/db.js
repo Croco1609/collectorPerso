@@ -46,7 +46,7 @@ pool.on('error', (err) => {
     console.error('❌ Erreur PostgreSQL', err);
 });
 
-if (process.env.DB_FORCE_RESTART === 'true') {
+if (process.env.DB_FORCE_RESTART === 'true' || process.env.NODE_ENV === 'test' || process.env.CI === 'true') {
     initDB();
 } else {
     console.log('ℹ️  Saut de l\'initialisation de la base de données (mode persistant).');
