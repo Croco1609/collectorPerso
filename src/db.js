@@ -13,24 +13,28 @@ const pool = new Pool({
 // 2. La fonction d'initialisation de la base
 const initDB = async () => {
     try {
-        // ⚠️ On supprime la table existante (pratique pour le dev local)
-        await pool.query('DROP TABLE IF EXISTS articles;');
+        // Correction de la détection de la table
+        const checkTable = await pool.query("SELECT to_regclass('public.articles') as table_exists");
 
-        // On recrée la table avec le fameux "seller_id" pour Keycloak et "image_url"
-        await pool.query(`
-      CREATE TABLE articles (
-        id SERIAL   PRIMARY KEY,
-        title       VARCHAR(255)   NOT NULL,
-        description TEXT,
-        price       DECIMAL(10, 2) NOT NULL,
-        image_url   TEXT,
-        seller_id   VARCHAR(255), 
-        created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-        console.log('✅ Table "articles" recréée avec le support Keycloak et Images !');
+        // On vérifie si la valeur retournée est null
+        if (!checkTable.rows[0].table_exists) {
+            console.log('🏗️ Création de la table "articles"...');
+            await pool.query(`
+                CREATE TABLE articles (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    price DECIMAL(10, 2) NOT NULL,
+                    seller_id VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+            console.log('✅ Table "articles" créée avec succès !');
+        } else {
+            console.log("ℹ️ Base de données déjà initialisée.");
+        }
     } catch (err) {
-        console.error('❌ Erreur lors de la création de la table :', err);
+        console.error("❌ Erreur lors de l'initialisation de la DB :", err.message);
     }
 };
 
