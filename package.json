@@ -15,7 +15,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "keycloak-connect": "^3.3.0",
+    "keycloak-connect": "^26.1.1",
     "pg": "^8.18.0"
   },
   "devDependencies": {
@@ -33,7 +33,11 @@
   },
   "homepage": "https://github.com/Croco1609/collectorPerso#readme",
   "overrides": {
-    "tough-cookie": "^4.1.3"
+    "tough-cookie": "^4.1.3",
+    "elliptic": "^6.5.7",
+    "minimatch": "^10.2.1"
   },
-  "jest": { "testEnvironment": "node" }
+  "jest": {
+    "testEnvironment": "node"
+  }
 }
