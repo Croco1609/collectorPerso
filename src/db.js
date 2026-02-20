@@ -17,13 +17,18 @@ const initDB = async () => {
         const checkTable = await pool.query("SELECT to_regclass('public.articles') as table_exists");
 
         // On vérifie si la valeur retournée est null
-        if (!checkTable.rows[0].table_exists) {
-            console.log('🏗️ Création de la table "articles"...');
+        if (process.env.DB_FORCE_RESTART === 'true') {
+            if (checkTable.rows[0].table_exists) {
+                await pool.query(`DROP TABLE IF EXISTS articles`);
+                console.log('🏗:construction: DROP de la table "articles"...');
+            }
+              console.log('🏗️ Création de la table "articles"...');
             await pool.query(`
                 CREATE TABLE articles (
                     id SERIAL PRIMARY KEY,
                     title VARCHAR(255) NOT NULL,
                     description TEXT,
+                    image_url TEXT,
                     price DECIMAL(10, 2) NOT NULL,
                     seller_id VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

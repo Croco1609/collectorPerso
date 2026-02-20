@@ -11,6 +11,35 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+const client = require('prom-client'); // Importation du client Prometheus
+
+// 1. Collecte des métriques par défaut (CPU, Mémoire, etc.)
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics({ register: client.register });
+
+// 2. Création d'une métrique personnalisée pour compter les requêtes HTTP
+const httpRequestDurationMicroseconds = new client.Histogram({
+    name: 'http_request_duration_seconds',
+    help: 'Durée des requêtes HTTP en secondes',
+    labelNames: ['method', 'route', 'code'],
+    buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5]
+});
+
+// Middleware pour enregistrer la durée de chaque requête
+app.use((req, res, next) => {
+    const end = httpRequestDurationMicroseconds.startTimer();
+    res.on('finish', () => {
+        end({ method: req.method, route: req.path, code: res.statusCode });
+    });
+    next();
+});
+
+// 3. Nouvelle route pour exposer les métriques (Prometheus viendra lire ici)
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+});
+
 // 1. Configuration de la session (nécessaire pour Keycloak)
 const memoryStore = new session.MemoryStore(); // Stockage en mémoire pour le développement
 app.use(session({
@@ -120,6 +149,25 @@ app.get('/api/my-articles', keycloak.protect(), async (req, res) => {
         res.status(500).json({ error: 'Erreur lors de la récupération de vos articles' });
     }
 });
+
+// Création d'une jauge personnalisée
+const articlesCountGauge = new client.Gauge({
+    name: 'collector_total_articles',
+    help: 'Nombre total d\'articles en vente dans la boutique'
+});
+
+// Fonction pour mettre à jour la valeur depuis la DB
+const updateMetrics = async () => {
+    try {
+        const result = await db.query('SELECT COUNT(*) FROM articles');
+        articlesCountGauge.set(parseInt(result.rows[0].count));
+    } catch (err) {
+        console.error("Erreur mise à jour métriques:", err.message);
+    }
+};
+
+// On met à jour toutes les 5 secondes
+setInterval(updateMetrics, 5000);
 
 if (require.main === module) {
     app.listen(port, () => {

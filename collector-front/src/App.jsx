@@ -70,7 +70,7 @@ function App() {
 
         axios.delete(`http://localhost:3000/api/articles/${id}`, config)
             .then(() => {
-                fetchArticles(); // On rafraîchit la liste après suppression
+                fetchArticles();
             })
             .catch(err => {
                 console.error("Erreur lors de la suppression", err);
@@ -83,9 +83,7 @@ function App() {
             <header>
                 <h1>🏆 Collector.shop</h1>
 
-                {/* 3. Boutons Connexion / Déconnexion */}
                 <div>
-                    {/* On vérifie d'abord si l'objet keycloak n'est pas null */}
                     {keycloak && (
                         authenticated ? (
                             <button onClick={() => keycloak.logout()} style={{ backgroundColor: '#ff4444' }}>
@@ -98,7 +96,6 @@ function App() {
                         )
                     )}
 
-                    {/* Optionnel : un petit message si Keycloak n'est pas encore prêt */}
                     {!keycloak && <span>Chargement de la sécurité...</span>}
                 </div>
             </header>
