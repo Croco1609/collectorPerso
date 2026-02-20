@@ -3,19 +3,30 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon -r dotenv/config src/server.js"
+    "dev": "nodemon src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "npm init -y",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "keycloak-connect": "^26.1.1",
     "pg": "^8.18.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
-  }
+    "nodemon": "^3.1.13"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Croco1609/collectorPerso.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Croco1609/collectorPerso/issues"
+  },
+  "homepage": "https://github.com/Croco1609/collectorPerso#readme"
 }

@@ -9,3 +9,8 @@ npm install --save-dev nodemon
 
 # 4. On crée le dossier qui va contenir notre code source
 mkdir src
+
+
+# 5. Le mot de passe pour keycloak : 
+admin
+admin
