@@ -1,0 +1,41 @@
+name: CI Collector Shop
+
+on: [push, pull_request]
+
+jobs:
+  test-and-audit:
+    runs-on: ubuntu-latest
+
+    services:
+      # On lance une DB temporaire pour les tests de la CI
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: collector_db
+        ports:
+          - 5433:5432
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Installation Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Installation dépendances
+        run: npm install
+
+      - name: Audit de sécurité (DevSecOps)
+        run: npm audit --audit-level=high
+
+      - name: Exécution des tests
+        run: npm test
+        env:
+          DB_USER: user
+          DB_PASSWORD: password
+          DB_HOST: localhost
+          DB_PORT: 5433
+          DB_NAME: collector_db

@@ -32,6 +32,10 @@ app.use(keycloak.middleware());
 
 // --- 📦 ROUTES ---
 
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK' });
+});
+
 app.get('/api/articles', async (req, res) => {
     try {
         const allArticles = await db.query('SELECT * FROM articles ORDER BY created_at DESC');
@@ -102,7 +106,7 @@ app.put('/api/articles/:id', keycloak.protect(), async (req, res) => {
     }
 });
 
-// Nouvelle route pour récupérer les articles d'un utilisateur spécifique
+// Route pour récupérer les articles d'un utilisateur spécifique
 app.get('/api/my-articles', keycloak.protect(), async (req, res) => {
     try {
         const seller_id = req.kauth.grant.access_token.content.sub;
@@ -117,6 +121,10 @@ app.get('/api/my-articles', keycloak.protect(), async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`🚀 Serveur sécurisé sur http://localhost:${port}`);
-});
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`🚀 Serveur sécurisé sur http://localhost:${port}`);
+    });
+}
+
+module.exports = app;
