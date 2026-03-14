@@ -52,7 +52,7 @@ app.use(session({
 // 2. Configuration du "Vigile" Keycloak
 const keycloak = new Keycloak({ store: memoryStore }, {
     realm: 'collector-realm',
-    'auth-server-url': 'http://localhost:8080',
+    'auth-server-url': process.env.KEYCLOAK_AUTH_URL || 'http://localhost:8080',
     resource: 'collector-front',
     'public-client': true
 });
@@ -60,6 +60,11 @@ const keycloak = new Keycloak({ store: memoryStore }, {
 app.use(keycloak.middleware());
 
 // --- 📦 ROUTES ---
+
+// Route par défaut pour l'accueil
+app.get('/', (req, res) => {
+    res.send('<h1>Bienvenue sur l\'API Collector ! 🚀</h1><p>Les routes disponibles sont /health, /api/articles, etc.</p>');
+});
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK' });

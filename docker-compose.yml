@@ -1,5 +1,25 @@
-version: '3.8'
 services:
+  frontend:
+    build:
+      context: ./collector-front # On pointe vers le bon dossier du frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+  backend:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432 # On utilise le port interne de Postgres
+      - DB_NAME=${DB_NAME}
+      - KEYCLOAK_AUTH_URL=http://keycloak:8080
+    depends_on:
+      - db
   db:
     image: postgres:15
     environment:
@@ -16,10 +36,9 @@ services:
     command: start-dev --import-realm
     environment:
       KC_HOSTNAME: localhost
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_ENABLED: "true"
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
       - "8080:8080"
     depends_on:
@@ -32,6 +51,8 @@ services:
     image: prom/prometheus:latest
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend
     ports:
       - "9090:9090"
 
@@ -43,7 +64,6 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - prometheus
-
 
 volumes:
   postgres_data:
