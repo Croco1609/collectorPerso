@@ -1,25 +1,46 @@
 services:
   frontend:
     build:
-      context: ./collector-front # On pointe vers le bon dossier du frontend
+      context: ./collector-front
       dockerfile: Dockerfile
     ports:
       - "5173:80"
     depends_on:
       - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.front.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.front.entrypoints=web"
+      - "traefik.http.services.front.loadbalancer.server.port=80"
+    networks:
+      - collector-network
   backend:
     build: .
     ports:
       - "3000:3000"
     environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=db
-      - DB_PORT=5432 # On utilise le port interne de Postgres
+      - DB_PORT=5432
       - DB_NAME=${DB_NAME}
-      - KEYCLOAK_AUTH_URL=http://keycloak:8080
+      - KEYCLOAK_AUTH_URL=http://localhost:8080
+      - DEBUG=keycloak-connect:*
+      - DB_FORCE_RESTART=false
+      - KEYCLOAK_PUBLIC_KEY=${KEYCLOAK_PUBLIC_KEY}
+    extra_hosts:
+      - "keycloak.local:host-gateway"
+    networks:
+      - collector-network
     depends_on:
       - db
+      - keycloak
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.back.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.back.entrypoints=web"
+      - "traefik.http.services.back.loadbalancer.server.port=3000"
   db:
     image: postgres:15
     environment:
@@ -30,6 +51,8 @@ services:
       - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - collector-network
 
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.1
@@ -37,8 +60,16 @@ services:
     environment:
       KC_HOSTNAME: localhost
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY: edge
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=PathPrefix(`/auth`)"
+      - "traefik.http.routers.keycloak.entrypoints=web"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
     ports:
       - "8080:8080"
     depends_on:
@@ -46,6 +77,8 @@ services:
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm.json
+    networks:
+      - collector-network
 
   prometheus:
     image: prom/prometheus:latest
@@ -55,6 +88,8 @@ services:
       - backend
     ports:
       - "9090:9090"
+    networks:
+      - collector-network
 
   grafana:
     image: grafana/grafana:latest
@@ -62,9 +97,40 @@ services:
       - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=http://localhost/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     depends_on:
       - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    networks:
+      - collector-network
+
+  traefik:
+    image: traefik:v2.11
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8081:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - collector-network
 
 volumes:
   postgres_data:
   keycloak_data:
+  grafana_data:
+
+networks:
+  collector-network:
+    driver: bridge

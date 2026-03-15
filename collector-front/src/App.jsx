@@ -5,7 +5,7 @@ import './App.css'
 
 // Configuration Keycloak
 const keycloakConfig = {
-    url: 'http://localhost:8080',
+    url: 'http://localhost/auth',
     realm: 'collector-realm',
     clientId: 'collector-front'
 };
@@ -27,14 +27,14 @@ function App() {
         isRun.current = true;
 
         const kc = new Keycloak(keycloakConfig);
-        kc.init({ onLoad: 'check-sso', checkLoginIframe: false }).then(auth => {
+        kc.init({ onLoad: 'check-sso', checkLoginIframe: false, pkceMethod: 'S256' }).then(auth => {
             setKeycloak(kc);
             setAuthenticated(auth);
         });
     }, []);
 
     const fetchArticles = () => {
-        axios.get('http://localhost:3000/api/articles')
+        axios.get('/api/articles')
             .then(res => {
                 setArticles(res.data)
                 setLoading(false)
@@ -52,7 +52,7 @@ function App() {
             headers: { Authorization: `Bearer ${keycloak.token}` }
         };
 
-        axios.post('http://localhost:3000/api/articles', formData, config)
+        axios.post('/api/articles', formData, config)
             .then(() => {
                 setFormData({ title: '', description: '', price: '', image_url: '' })
                 fetchArticles()
@@ -68,7 +68,7 @@ function App() {
             headers: { Authorization: `Bearer ${keycloak.token}` }
         };
 
-        axios.delete(`http://localhost:3000/api/articles/${id}`, config)
+        axios.delete(`/api/articles/${id}`, config)
             .then(() => {
                 fetchArticles();
             })

@@ -4,6 +4,7 @@ const session = require('express-session');
 const Keycloak = require('keycloak-connect');
 require('dotenv').config();
 const db = require('./db');
+const { jwtDecode } = require('jwt-decode');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -52,9 +53,12 @@ app.use(session({
 // 2. Configuration du "Vigile" Keycloak
 const keycloak = new Keycloak({ store: memoryStore }, {
     realm: 'collector-realm',
-    'auth-server-url': process.env.KEYCLOAK_AUTH_URL || 'http://localhost:8080',
+    'auth-server-url': 'http://localhost/auth',
     resource: 'collector-front',
-    'public-client': true
+    'bearer-only': true,
+    'ssl-required': 'none',
+    'verify-token-audience': false,
+    'realm-public-key': process.env.KEYCLOAK_PUBLIC_KEY
 });
 
 app.use(keycloak.middleware());
@@ -80,13 +84,50 @@ app.get('/api/articles', async (req, res) => {
     }
 });
 
-// 3. 🔐 ROUTE SÉCURISÉE : On ajoute "keycloak.protect()"
-app.post('/api/articles', keycloak.protect(), async (req, res) => {
+app.get('/api/test-add', async (req, res) => {
+    try {
+        // 1. On crée des données totalement "en dur" (sans passer par le frontend ni Keycloak)
+        const title = "Objet Magique de Test";
+        const description = "Ceci est un test pour valider la base de données.";
+        const price = 42;
+        const image_url = "https://via.placeholder.com/150";
+        const seller_id = "utilisateur-fictif-1234"; // Un faux identifiant
+
+        // 2. On tente l'insertion
+        const newArticle = await db.query(
+            'INSERT INTO articles (title, description, price, image_url, seller_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [title, description, price, image_url, seller_id]
+        );
+
+        // 3. On renvoie le résultat
+        res.status(201).json({
+            message: "✅ Test réussi ! L'article est dans la base.",
+            article: newArticle.rows[0]
+        });
+
+    } catch (err) {
+        console.error("❌ Erreur lors du test DB:", err.message);
+        res.status(500).json({ error: 'Erreur de base de données', details: err.message });
+    }
+});
+
+app.post('/api/articles', (req, res, next) => {
+    // 🔍 1. Petit debug pour confirmer que tout passe
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+        const decoded = jwtDecode(token);
+        console.log("✅ Jeton reçu de :", decoded.iss);
+    }
+    next();
+}, keycloak.protect(), async (req, res) => {
+    // 💾 2. Logique d'insertion en base de données
     try {
         const { title, description, price, image_url } = req.body;
+        const seller_id = req.kauth?.grant?.access_token?.content?.sub;
 
-        // On récupère l'identifiant unique de l'utilisateur depuis son badge !
-        const seller_id = req.kauth.grant.access_token.content.sub;
+        if (!seller_id) {
+            return res.status(401).json({ error: "Utilisateur non identifié" });
+        }
 
         const newArticle = await db.query(
             'INSERT INTO articles (title, description, price, image_url, seller_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
@@ -94,13 +135,14 @@ app.post('/api/articles', keycloak.protect(), async (req, res) => {
         );
 
         res.status(201).json(newArticle.rows[0]);
+        console.log("🚀 Article ajouté avec succès par :", seller_id);
+
     } catch (err) {
-        console.error("Erreur sécurité/DB:", err.message);
-        res.status(403).json({ error: 'Accès refusé ou erreur serveur' });
+        console.error("❌ Erreur DB/Serveur:", err.message);
+        res.status(500).json({ error: 'Erreur serveur lors de l\'enregistrement' });
     }
 });
 
-// 3. 🔐 ROUTE SÉCURISÉE : On ajoute "keycloak.protect()"
 app.delete('/api/articles/:id', keycloak.protect(), async (req, res) => {
     try {
         const { id } = req.params;
@@ -117,7 +159,6 @@ app.delete('/api/articles/:id', keycloak.protect(), async (req, res) => {
     }
 });
 
-// 3. 🔐 ROUTE SÉCURISÉE : On ajoute "keycloak.protect()"
 app.put('/api/articles/:id', keycloak.protect(), async (req, res) => {
     try {
         const { id } = req.params;
@@ -140,7 +181,6 @@ app.put('/api/articles/:id', keycloak.protect(), async (req, res) => {
     }
 });
 
-// Route pour récupérer les articles d'un utilisateur spécifique
 app.get('/api/my-articles', keycloak.protect(), async (req, res) => {
     try {
         const seller_id = req.kauth.grant.access_token.content.sub;
@@ -155,13 +195,11 @@ app.get('/api/my-articles', keycloak.protect(), async (req, res) => {
     }
 });
 
-// Création d'une jauge personnalisée
 const articlesCountGauge = new client.Gauge({
     name: 'collector_total_articles',
     help: 'Nombre total d\'articles en vente dans la boutique'
 });
 
-// Fonction pour mettre à jour la valeur depuis la DB
 const updateMetrics = async () => {
     try {
         const result = await db.query('SELECT COUNT(*) FROM articles');
