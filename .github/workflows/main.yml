@@ -10,9 +10,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: ${{ secrets.DB_USER_CI }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD_CI }}
-          POSTGRES_DB: ${{ secrets.DB_NAME_CI }}
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
         ports:
           - 5433:5432
         options: >-
@@ -38,8 +38,8 @@ jobs:
       - name: Exécution des tests
         run: npm test
         env:
-          DB_USER: ${{ secrets.DB_USER_CI }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD_CI }}
+          DB_USER: testuser
+          DB_PASSWORD: testpass
           DB_HOST: 127.0.0.1
           DB_PORT: 5433
-          DB_NAME: ${{ secrets.DB_NAME_CI }}
+          DB_NAME: testdb
