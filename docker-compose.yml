@@ -3,8 +3,6 @@ services:
     build:
       context: ./collector-front
       dockerfile: Dockerfile
-    ports:
-      - "5173:80"
     depends_on:
       - backend
     labels:
@@ -16,8 +14,6 @@ services:
       - collector-network
   backend:
     build: .
-    ports:
-      - "3000:3000"
     environment:
       - NODE_OPTIONS=--dns-result-order=ipv4first
       - DB_USER=${DB_USER}
@@ -70,8 +66,6 @@ services:
       - "traefik.http.routers.keycloak.rule=PathPrefix(`/auth`)"
       - "traefik.http.routers.keycloak.entrypoints=web"
       - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
-    ports:
-      - "8080:8080"
     depends_on:
       - db
     volumes:
@@ -86,15 +80,11 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
       - backend
-    ports:
-      - "9090:9090"
     networks:
       - collector-network
 
   grafana:
     image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SERVER_ROOT_URL=http://localhost/grafana
@@ -103,6 +93,7 @@ services:
       - prometheus
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
