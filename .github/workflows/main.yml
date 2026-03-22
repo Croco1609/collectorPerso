@@ -35,6 +35,6 @@ jobs:
         env:
           DB_USER: ${{ secrets.DB_USER_CI }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD_CI }}
-          DB_HOST: localhost
+          DB_HOST: 127.0.0.1
           DB_PORT: 5433
           DB_NAME: ${{ secrets.DB_NAME_CI }}
