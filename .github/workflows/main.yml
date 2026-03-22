@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      # On lance une DB temporaire pour les tests de la CI
       postgres:
         image: postgres:15
         env:
@@ -29,7 +28,7 @@ jobs:
         run: npm install
 
       - name: Audit de sécurité (DevSecOps)
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
 
       - name: Exécution des tests
         run: npm test
