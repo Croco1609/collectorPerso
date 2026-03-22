@@ -37,7 +37,8 @@
   "overrides": {
     "tough-cookie": "^4.1.3",
     "elliptic": "^6.5.7",
-    "minimatch": "^10.2.1"
+    "minimatch": "^10.2.1",
+    "basic-ftp": "^5.2.0"
   },
   "jest": {
     "testEnvironment": "node"
