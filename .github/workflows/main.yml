@@ -3,9 +3,11 @@ name: CI Collector Shop
 on: [push, pull_request]
 
 jobs:
+  # ==========================================
+  # JOB 1 : TESTS ET SÉCURITÉ
+  # ==========================================
   test-and-audit:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:15
@@ -22,7 +24,10 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Installation Node.js
         uses: actions/setup-node@v3
@@ -35,8 +40,8 @@ jobs:
       - name: Audit de sécurité (DevSecOps)
         run: npm audit --audit-level=critical
 
-      - name: Exécution des tests
-        run: npm test
+      - name: Exécution des tests (avec couverture)
+        run: npm test -- --coverage
         env:
           DB_USER: testuser
           DB_PASSWORD: testpass
@@ -45,8 +50,33 @@ jobs:
           DB_NAME: testdb
           DB_FORCE_RESTART: 'true'
 
+      - name: Sauvegarde du rapport de couverture
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # ==========================================
+  # JOB 2 : ANALYSE QUALITÉ SONARCLOUD
+  # ==========================================
+  sonar-analysis:
+    needs: test-and-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # On récupère le carton laissé par le Job 1 📥
+      - name: Récupération du rapport de couverture
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
       - name: Analyse SonarCloud 🕵️‍♂️
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
