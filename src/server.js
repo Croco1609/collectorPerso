@@ -210,12 +210,14 @@ const updateMetrics = async () => {
 };
 
 // On met à jour toutes les 5 secondes
-setInterval(updateMetrics, 5000);
-
 if (require.main === module) {
-    app.listen(port, () => {
-        console.log(`🚀 Serveur sécurisé sur http://localhost:${port}`);
-    });
+    setInterval(updateMetrics, 5000);
+
+    if (require.main === module) {
+        app.listen(port, () => {
+            console.log(`🚀 Serveur sécurisé sur http://localhost:${port}`);
+        });
+    }
 }
 
 module.exports = app;
