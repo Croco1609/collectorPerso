@@ -23,7 +23,7 @@ services:
       - DB_NAME=${DB_NAME}
       - KEYCLOAK_AUTH_URL=http://localhost:8080
       - DEBUG=keycloak-connect:*
-      - DB_FORCE_RESTART=false
+      - DB_FORCE_RESTART=true
       - KEYCLOAK_PUBLIC_KEY=${KEYCLOAK_PUBLIC_KEY}
     extra_hosts:
       - "keycloak.local:host-gateway"

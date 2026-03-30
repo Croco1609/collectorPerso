@@ -15,8 +15,7 @@ app.use(express.json());
 const client = require('prom-client'); // Importation du client Prometheus
 
 // 1. Collecte des métriques par défaut (CPU, Mémoire, etc.)
-const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({ register: client.register });
+client.collectDefaultMetrics({ register: client.register });
 
 // 2. Création d'une métrique personnalisée pour compter les requêtes HTTP
 const httpRequestDurationMicroseconds = new client.Histogram({
@@ -35,7 +34,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// 3. Nouvelle route pour exposer les métriques (Prometheus viendra lire ici)
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
     res.end(await client.register.metrics());
@@ -86,20 +84,17 @@ app.get('/api/articles', async (req, res) => {
 
 app.get('/api/test-add', async (req, res) => {
     try {
-        // 1. On crée des données totalement "en dur" (sans passer par le frontend ni Keycloak)
         const title = "Objet Magique de Test";
         const description = "Ceci est un test pour valider la base de données.";
         const price = 42;
         const image_url = "https://via.placeholder.com/150";
-        const seller_id = "utilisateur-fictif-1234"; // Un faux identifiant
+        const seller_id = "utilisateur-fictif-1234";
 
-        // 2. On tente l'insertion
         const newArticle = await db.query(
             'INSERT INTO articles (title, description, price, image_url, seller_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [title, description, price, image_url, seller_id]
         );
 
-        // 3. On renvoie le résultat
         res.status(201).json({
             message: "✅ Test réussi ! L'article est dans la base.",
             article: newArticle.rows[0]
@@ -112,7 +107,6 @@ app.get('/api/test-add', async (req, res) => {
 });
 
 app.post('/api/articles', (req, res, next) => {
-    // 🔍 1. Petit debug pour confirmer que tout passe
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
         const decoded = jwtDecode(token);
@@ -120,7 +114,6 @@ app.post('/api/articles', (req, res, next) => {
     }
     next();
 }, keycloak.protect(), async (req, res) => {
-    // 💾 2. Logique d'insertion en base de données
     try {
         const { title, description, price, image_url } = req.body;
         const seller_id = req.kauth?.grant?.access_token?.content?.sub;
@@ -209,15 +202,12 @@ const updateMetrics = async () => {
     }
 };
 
-// On met à jour toutes les 5 secondes
 if (require.main === module) {
     setInterval(updateMetrics, 5000);
 
-    if (require.main === module) {
-        app.listen(port, () => {
-            console.log(`🚀 Serveur sécurisé sur http://localhost:${port}`);
-        });
-    }
+    app.listen(port, () => {
+        console.log(`🚀 Serveur sécurisé sur http://localhost:${port}`);
+    });
 }
 
 module.exports = app;
