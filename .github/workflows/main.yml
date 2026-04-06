@@ -102,7 +102,7 @@ jobs:
           tags: collector-perso:${{ github.sha }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@0.69.3
         with:
           image-ref: 'collector-perso:${{ github.sha }}'
           format: 'table'
