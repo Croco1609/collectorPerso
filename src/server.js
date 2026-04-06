@@ -65,7 +65,7 @@ app.use(keycloak.middleware());
 
 // Route par défaut pour l'accueil
 app.get('/', (req, res) => {
-    res.send('<h1>Bienvenue sur l\'API Collector ! 🚀</h1><p>Les routes disponibles sont /health, /api/articles, etc.</p>');
+    res.send('<h1>Bienvenue sur l\'API Collector !</h1><p>Les routes disponibles sont /health, /api/articles, etc.</p>');
 });
 
 app.get('/health', (req, res) => {
@@ -96,12 +96,12 @@ app.get('/api/test-add', async (req, res) => {
         );
 
         res.status(201).json({
-            message: "✅ Test réussi ! L'article est dans la base.",
+            message: "Test réussi ! L'article est dans la base.",
             article: newArticle.rows[0]
         });
 
     } catch (err) {
-        console.error("❌ Erreur lors du test DB:", err.message);
+        console.error("Erreur lors du test DB:", err.message);
         res.status(500).json({ error: 'Erreur de base de données', details: err.message });
     }
 });
@@ -110,7 +110,7 @@ app.post('/api/articles', (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
         const decoded = jwtDecode(token);
-        console.log("✅ Jeton reçu de :", decoded.iss);
+        console.log("Jeton reçu de :", decoded.iss);
     }
     next();
 }, keycloak.protect(), async (req, res) => {
@@ -128,10 +128,10 @@ app.post('/api/articles', (req, res, next) => {
         );
 
         res.status(201).json(newArticle.rows[0]);
-        console.log("🚀 Article ajouté avec succès par :", seller_id);
+        console.log("Article ajouté avec succès par :", seller_id);
 
     } catch (err) {
-        console.error("❌ Erreur DB/Serveur:", err.message);
+        console.error("Erreur DB/Serveur:", err.message);
         res.status(500).json({ error: 'Erreur serveur lors de l\'enregistrement' });
     }
 });
@@ -206,7 +206,7 @@ if (require.main === module) {
     setInterval(updateMetrics, 5000);
 
     app.listen(port, () => {
-        console.log(`🚀 Serveur sécurisé sur http://localhost:${port}`);
+        console.log(`Serveur sécurisé sur http://localhost:${port}`);
     });
 }
 

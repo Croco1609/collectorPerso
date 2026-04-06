@@ -68,7 +68,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # On récupère le carton laissé par le Job 1 📥
       - name: Récupération du rapport de couverture
         uses: actions/download-artifact@v4
         with:
@@ -80,3 +79,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # =================================================
+  # JOB 3 : BUILD & SCAN DOCKER IMAGE WITH TRIVY
+  # =================================================
+  build-and-scan-image:
+    needs: test-and-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: collector-perso:${{ github.sha }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: 'collector-perso:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
