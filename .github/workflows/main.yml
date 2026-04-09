@@ -90,6 +90,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Installation Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Installation dépendances
+        run: npm install
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
