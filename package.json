@@ -41,7 +41,7 @@
     "basic-ftp": "^5.2.0",
     "cross-spawn": "^7.0.5",
     "glob": "^11.1.0",
-    "test-exclude": "^7.1.0",
+    "test-exclude": "^8.0.0",
     "minimatch": "^10.2.3",
     "path-to-regexp": "^8.4.0",
     "picomatch": "^4.0.4",
