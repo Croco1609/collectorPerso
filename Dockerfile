@@ -11,6 +11,8 @@ FROM node:18-alpine
 
 RUN apk update && apk upgrade --no-cache
 
+RUN npm install -g npm@latest
+
 WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
