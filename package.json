@@ -22,7 +22,7 @@
     "prom-client": "^15.1.3"
   },
   "devDependencies": {
-    "jest": "^30.2.0",
+    "jest": "^30.3.0",
     "nodemon": "^3.1.13",
     "supertest": "^7.2.2"
   },
@@ -37,8 +37,15 @@
   "homepage": "https://github.com/Croco1609/collectorPerso#readme",
   "overrides": {
     "tough-cookie": "^4.1.3",
-    "elliptic": "^6.5.7",
-    "basic-ftp": "^5.2.0"
+    "elliptic": "^6.5.4",
+    "basic-ftp": "^5.2.0",
+    "cross-spawn": "^7.0.5",
+    "glob": "^11.1.0",
+    "test-exclude": "^7.1.0",
+    "minimatch": "^10.2.3",
+    "path-to-regexp": "^8.4.0",
+    "picomatch": "^4.0.4",
+    "tar": "^7.5.11"
   },
   "jest": {
     "testEnvironment": "node",
