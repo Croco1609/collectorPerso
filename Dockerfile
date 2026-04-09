@@ -4,14 +4,17 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+# Utilisation de npm ci pour une installation propre et sécurisée basée sur le .lock
+RUN npm ci
 
 # Étape 2: Image finale plus légère
 FROM node:18-alpine
 
+# Mise à jour des paquets de l'OS (Corrige les failles Alpine)
 RUN apk update && apk upgrade --no-cache
 
-RUN npm install -g npm@latest
+# CORRECTION : On installe la dernière version de npm v10 (compatible avec Node 18)
+RUN npm install -g npm@10
 
 WORKDIR /app
 
