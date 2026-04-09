@@ -9,6 +9,8 @@ RUN npm install
 # Étape 2: Image finale plus légère
 FROM node:18-alpine
 
+RUN apk update && apk upgrade --no-cache
+
 WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
