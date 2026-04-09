@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY package*.json ./
 # Utilisation de npm ci pour une installation propre et sécurisée basée sur le .lock
-RUN npm ci
+RUN npm install
 
 # Étape 2: Image finale plus légère
 FROM node:18-alpine
