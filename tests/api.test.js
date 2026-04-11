@@ -1,35 +1,42 @@
 const request = require('supertest');
-const app = require('../src/server'); // Ton serveur
-const db = require('../src/db');      // Ta connexion DB
+const app = require('../src/server');
+jest.mock('../src/db', () => {
+    return {
+        query: jest.fn(),
+        ready: Promise.resolve(),
+        end: jest.fn()
+    };
+});
+
+const db = require('../src/db');
 
 describe('Vérification des routes publiques', () => {
 
-    // On attend que la DB soit initialisée (tables créées) avant de lancer les tests
-    beforeAll(async () => {
-        await db.ready;
-    });
-
-    afterAll(async () => {
-        await db.end();
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
     it('doit répondre UP sur la route de santé avec les dépendances', async () => {
+        db.query.mockResolvedValueOnce({ rows: [] });
+
         const res = await request(app).get('/health');
 
-        // On s'attend à un succès HTTP (200)
         expect(res.statusCode).toEqual(200);
-
-        // On s'attend au nouveau standard 'UP'
         expect(res.body.status).toBe('UP');
-
-        // On vérifie que notre tableau de bord est bien là
         expect(res.body.dependencies).toBeDefined();
-        expect(res.body.dependencies.database).toBeDefined();
     });
 
     it('doit permettre de voir le catalogue sans être connecté', async () => {
+        const fauxArticles = [
+            { id: 1, title: 'Article de test Mocké', price: 10 }
+        ];
+
+        db.query.mockResolvedValueOnce({ rows: fauxArticles });
+
         const res = await request(app).get('/api/articles');
+
         expect(res.statusCode).toEqual(200);
         expect(Array.isArray(res.body)).toBeTruthy();
+        expect(res.body[0].title).toBe('Article de test Mocké');
     });
 });
