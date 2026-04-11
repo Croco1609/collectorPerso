@@ -1,3 +1,1 @@
-# Faux positif / Faille interne à l'outil système npm dans node:18-alpine
-# Le risque d'exploitation sur notre API Express est nul.
 CVE-2026-33671
