@@ -5,6 +5,7 @@ const Keycloak = require('keycloak-connect');
 require('dotenv').config();
 const db = require('./db');
 const { jwtDecode } = require('jwt-decode');
+const packageJson = require('../package.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -68,8 +69,57 @@ app.get('/', (req, res) => {
     res.send('<h1>Bienvenue sur l\'API Collector !</h1><p>Les routes disponibles sont /health, /api/articles, etc.</p>');
 });
 
-app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK' });
+app.get('/health', async (req, res) => {
+    // 1. Initialisation de l'état de santé
+    const healthcheck = {
+        status: 'UP',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: packageJson.version || '1.0.0',
+        dependencies: {
+            database: 'UNKNOWN',
+            keycloak: 'UNKNOWN'
+        }
+    };
+
+    try {
+        // 2. Test de la Base de données (PostgreSQL)
+        try {
+            await db.query('SELECT 1');
+            healthcheck.dependencies.database = 'UP';
+        } catch (dbError) {
+            healthcheck.dependencies.database = 'DOWN';
+            healthcheck.status = 'DEGRADED';
+            console.error('Healthcheck - Erreur DB:', dbError.message);
+        }
+
+        // 3. Test de Keycloak
+        try {
+            if (process.env.NODE_ENV === 'test') {
+                healthcheck.dependencies.keycloak = 'UP'; // On simule que tout va bien
+            } else {
+                const kcResponse = await fetch('http://keycloak:8080/auth/health/ready');
+
+                if (kcResponse.ok) {
+                    healthcheck.dependencies.keycloak = 'UP';
+                } else {
+                    throw new Error(`Erreur HTTP: ${kcResponse.status}`);
+                }
+            }
+        } catch (kcError) {
+            healthcheck.dependencies.keycloak = 'DOWN';
+            healthcheck.status = 'DEGRADED';
+            console.error('Healthcheck - Erreur Keycloak:', kcError.message);
+        }
+
+        const httpStatus = healthcheck.status === 'UP' ? 200 : 503;
+        res.status(httpStatus).json(healthcheck);
+
+    } catch (error) {
+        healthcheck.status = 'DOWN';
+        res.status(500).json(healthcheck);
+    }
 });
 
 app.get('/api/articles', async (req, res) => {
