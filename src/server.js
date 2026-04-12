@@ -4,7 +4,6 @@ const session = require('express-session');
 const Keycloak = require('keycloak-connect');
 require('dotenv').config();
 const db = require('./db');
-const { jwtDecode } = require('jwt-decode');
 const packageJson = require('../package.json');
 
 const app = express();
@@ -13,12 +12,9 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const client = require('prom-client'); // Importation du client Prometheus
-
-// 1. Collecte des métriques par défaut (CPU, Mémoire, etc.)
+const client = require('prom-client');
 client.collectDefaultMetrics({ register: client.register });
 
-// 2. Création d'une métrique personnalisée pour compter les requêtes HTTP
 const httpRequestDurationMicroseconds = new client.Histogram({
     name: 'http_request_duration_seconds',
     help: 'Durée des requêtes HTTP en secondes',
@@ -26,12 +22,9 @@ const httpRequestDurationMicroseconds = new client.Histogram({
     buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5]
 });
 
-// Middleware pour enregistrer la durée de chaque requête
 app.use((req, res, next) => {
     const end = httpRequestDurationMicroseconds.startTimer();
-    res.on('finish', () => {
-        end({ method: req.method, route: req.path, code: res.statusCode });
-    });
+    res.on('finish', () => end({ method: req.method, route: req.path, code: res.statusCode }));
     next();
 });
 
@@ -40,8 +33,7 @@ app.get('/metrics', async (req, res) => {
     res.end(await client.register.metrics());
 });
 
-// 1. Configuration de la session (nécessaire pour Keycloak)
-const memoryStore = new session.MemoryStore(); // Stockage en mémoire pour le développement
+const memoryStore = new session.MemoryStore();
 app.use(session({
     secret: 'une_cle_secrete_tres_longue',
     resave: false,
@@ -49,7 +41,6 @@ app.use(session({
     store: memoryStore
 }));
 
-// 2. Configuration du "Vigile" Keycloak
 const keycloak = new Keycloak({ store: memoryStore }, {
     realm: 'collector-realm',
     'auth-server-url': 'http://localhost/auth',
@@ -62,179 +53,52 @@ const keycloak = new Keycloak({ store: memoryStore }, {
 
 app.use(keycloak.middleware());
 
-// --- 📦 ROUTES ---
+const articleRoutes = require('./routes/article.routes');
 
-// Route par défaut pour l'accueil
+app.use('/api/articles', articleRoutes(keycloak));
+
 app.get('/', (req, res) => {
     res.send('<h1>Bienvenue sur l\'API Collector !</h1><p>Les routes disponibles sont /health, /api/articles, etc.</p>');
 });
 
 app.get('/health', async (req, res) => {
-    // 1. Initialisation de l'état de santé
     const healthcheck = {
         status: 'UP',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         memory: process.memoryUsage(),
         version: packageJson.version || '1.0.0',
-        dependencies: {
-            database: 'UNKNOWN',
-            keycloak: 'UNKNOWN'
-        }
+        dependencies: { database: 'UNKNOWN', keycloak: 'UNKNOWN' }
     };
 
     try {
-        // 2. Test de la Base de données (PostgreSQL)
         try {
             await db.query('SELECT 1');
             healthcheck.dependencies.database = 'UP';
         } catch (dbError) {
             healthcheck.dependencies.database = 'DOWN';
             healthcheck.status = 'DEGRADED';
-            console.error('Healthcheck - Erreur DB:', dbError.message);
         }
 
-        // 3. Test de Keycloak
         try {
             if (process.env.NODE_ENV === 'test') {
-                healthcheck.dependencies.keycloak = 'UP'; // On simule que tout va bien
+                healthcheck.dependencies.keycloak = 'UP';
             } else {
                 const kcResponse = await fetch('http://keycloak:8080/auth/health/ready');
-
                 if (kcResponse.ok) {
                     healthcheck.dependencies.keycloak = 'UP';
-                } else {
-                    throw new Error(`Erreur HTTP: ${kcResponse.status}`);
-                }
+                } else throw new Error(`Erreur HTTP: ${kcResponse.status}`);
             }
         } catch (kcError) {
             healthcheck.dependencies.keycloak = 'DOWN';
             healthcheck.status = 'DEGRADED';
-            console.error('Healthcheck - Erreur Keycloak:', kcError.message);
         }
 
         const httpStatus = healthcheck.status === 'UP' ? 200 : 503;
         res.status(httpStatus).json(healthcheck);
-
     } catch (error) {
         healthcheck.status = 'DOWN';
         res.status(500).json(healthcheck);
-    }
-});
-
-app.get('/api/articles', async (req, res) => {
-    try {
-        const allArticles = await db.query('SELECT * FROM articles ORDER BY created_at DESC');
-        res.status(200).json(allArticles.rows);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: 'Erreur lors de la récupération des articles' });
-    }
-});
-
-app.get('/api/test-add', async (req, res) => {
-    try {
-        const title = "Objet Magique de Test";
-        const description = "Ceci est un test pour valider la base de données.";
-        const price = 42;
-        const image_url = "https://via.placeholder.com/150";
-        const seller_id = "utilisateur-fictif-1234";
-
-        const newArticle = await db.query(
-            'INSERT INTO articles (title, description, price, image_url, seller_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [title, description, price, image_url, seller_id]
-        );
-
-        res.status(201).json({
-            message: "Test réussi ! L'article est dans la base.",
-            article: newArticle.rows[0]
-        });
-
-    } catch (err) {
-        console.error("Erreur lors du test DB:", err.message);
-        res.status(500).json({ error: 'Erreur de base de données', details: err.message });
-    }
-});
-
-app.post('/api/articles', (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (token) {
-        const decoded = jwtDecode(token);
-        console.log("Jeton reçu de :", decoded.iss);
-    }
-    next();
-}, keycloak.protect(), async (req, res) => {
-    try {
-        const { title, description, price, image_url } = req.body;
-        const seller_id = req.kauth?.grant?.access_token?.content?.sub;
-
-        if (!seller_id) {
-            return res.status(401).json({ error: "Utilisateur non identifié" });
-        }
-
-        const newArticle = await db.query(
-            'INSERT INTO articles (title, description, price, image_url, seller_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [title, description, price, image_url, seller_id]
-        );
-
-        res.status(201).json(newArticle.rows[0]);
-        console.log("Article ajouté avec succès par :", seller_id);
-
-    } catch (err) {
-        console.error("Erreur DB/Serveur:", err.message);
-        res.status(500).json({ error: 'Erreur serveur lors de l\'enregistrement' });
-    }
-});
-
-app.delete('/api/articles/:id', keycloak.protect(), async (req, res) => {
-    try {
-        const { id } = req.params;
-        const seller_id = req.kauth.grant.access_token.content.sub;
-
-        const deleteArticle = await db.query('DELETE FROM articles WHERE id = $1 AND seller_id = $2 RETURNING *', [id, seller_id]);
-        if (deleteArticle.rows.length === 0) {
-            return res.status(404).json({ error: 'Article non trouvé ou vous n\'êtes pas autorisé à le supprimer' });
-        }
-        res.status(200).json({ message: 'Article supprimé avec succès' });
-    } catch (err) {
-        console.error("Erreur sécurité/DB:", err.message);
-        res.status(403).json({ error: 'Accès refusé ou erreur serveur' });
-    }
-});
-
-app.put('/api/articles/:id', keycloak.protect(), async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, description, price, image_url } = req.body;
-        const seller_id = req.kauth.grant.access_token.content.sub;
-
-        const updateArticle = await db.query(
-            'UPDATE articles SET title = $1, description = $2, price = $3, image_url = $4 WHERE id = $5 AND seller_id = $6 RETURNING *',
-            [title, description, price, image_url, id, seller_id]
-        );
-
-        if (updateArticle.rows.length === 0) {
-            return res.status(404).json({ error: 'Article non trouvé ou vous n\'êtes pas autorisé à le modifier' });
-        }
-
-        res.status(200).json(updateArticle.rows[0]);
-    } catch (err) {
-        console.error("Erreur sécurité/DB:", err.message);
-        res.status(403).json({ error: 'Accès refusé ou erreur serveur' });
-    }
-});
-
-app.get('/api/my-articles', keycloak.protect(), async (req, res) => {
-    try {
-        const seller_id = req.kauth.grant.access_token.content.sub;
-        const myArticles = await db.query(
-            'SELECT * FROM articles WHERE seller_id = $1 ORDER BY created_at DESC',
-            [seller_id]
-        );
-        res.status(200).json(myArticles.rows);
-    } catch (err) {
-        console.error("Erreur lors de la récupération de mes articles:", err.message);
-        res.status(500).json({ error: 'Erreur lors de la récupération de vos articles' });
     }
 });
 
@@ -254,7 +118,6 @@ const updateMetrics = async () => {
 
 if (require.main === module) {
     setInterval(updateMetrics, 5000);
-
     app.listen(port, () => {
         console.log(`Serveur sécurisé sur http://localhost:${port}`);
     });
