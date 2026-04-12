@@ -121,7 +121,7 @@ describe('API Collector - Batterie de Tests Complète', () => {
                 rows: [{ id: 1, title: 'Mon Objet', seller_id: 'user-bruce-wayne-123' }]
             });
 
-            const res = await request(app).get('/api/my-articles');
+            const res = await request(app).get('/api/articles/my-articles');
 
             expect(res.statusCode).toEqual(200);
             expect(res.body).toHaveLength(1);
