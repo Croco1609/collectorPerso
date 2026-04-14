@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: D:\dev\Develop\collectorPerso\k8s\kompose.exe convert -f docker-compose.yml
+    kompose.version: 1.16.0 (0c01309)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: backend
+  name: backend
+spec:
+  replicas: 1
+  selector:
+      matchLabels:
+        io.kompose.service: backend
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: backend
+    spec:
+      containers:
+      - env:
+        - name: DB_FORCE_RESTART
+          value: "false"
+        - name: DB_HOST
+          value: db
+        - name: DB_NAME
+          value: collector
+        - name: DB_PASSWORD
+          value: postgres
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: postgres
+        - name: DEBUG
+          value: keycloak-connect:*
+        - name: KEYCLOAK_REALM
+          value: collector-realm
+        - name: KEYCLOAK_RESOURCE
+          value: collector-front
+        - name: NODE_OPTIONS
+          value: --dns-result-order=ipv4first
+        - name: KEYCLOAK_PUBLIC_KEY
+          value: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuRF4doWEB9okrjUCPYMKYvD5hn027N3HH1MHREkdJEHKPB6rgAfi9Mde9JGtL1HqVzNTATHPYWI0sJS0StsOaR89hiGGtw72rWqx2QwKE6fu6l8dMDZx0stsZjrBhUMLhqNFzcCNrXx0pqV1qYFGf8yJBsIiK4xotg1NkdYDpF2oFxwSoIYk4EfiuMqNdHXuWsXijUX029PWZOtT95Fxig+EH6rqvZM8qp3UEnvqcTGsUzYk1Q/K5BPphsR5Oayhvip6BulDt/WfNBbh3P6VW4KovK1VRH7K0NiSV+wSwbJXPTNJ+dNzTOBO6RYx4MZaeDdl2pWNtc0dUSGmGLW5lQIDAQAB"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        restartPolicy: Always
+        image: collector-backend:v2
+        name: backend
+        imagePullPolicy: Never
+      restartPolicy: Always
+status: {}

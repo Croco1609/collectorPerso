@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    io.kompose.service: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: keycloak
+  template:
+    metadata:
+      labels:
+        io.kompose.service: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:22.0.1
+        args: ["start-dev", "--import-realm"]
+        env:
+          - name: KC_HOSTNAME_STRICT
+            value: "false"
+          - name: KC_HTTP_ENABLED
+            value: "true"
+          - name: KC_HTTP_RELATIVE_PATH
+            value: /auth
+          - name: KC_PROXY
+            value: edge
+          - name: KC_HOSTNAME_URL
+            value: http://localhost/auth
+          - name: KEYCLOAK_ADMIN
+            value: admin
+          - name: KEYCLOAK_ADMIN_PASSWORD
+            value: admin
+        volumeMounts:
+        - mountPath: /opt/keycloak/data
+          name: keycloak-data
+        - mountPath: /opt/keycloak/data/import/realm-export.json
+          name: realm-file
+          subPath: realm-export.json
+      volumes:
+      - name: keycloak-data
+        persistentVolumeClaim:
+          claimName: keycloak-data
+      - name: realm-file
+        configMap:
+          name: keycloak-realm-json

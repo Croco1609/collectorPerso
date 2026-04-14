@@ -727,8 +727,8 @@
       "pluginVersion": "12.4.2",
       "targets": [
         {
-          "editorMode": "builder",
-          "expr": "collector_total_articles",
+          "editorMode": "code",
+          "expr": "max(collector_total_articles)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1113,6 +1113,6 @@
   "timezone": "browser",
   "title": "NodeJS Application Dashboard",
   "uid": "PTSqcpJWk",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

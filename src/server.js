@@ -120,6 +120,7 @@ if (require.main === module) {
     setInterval(updateMetrics, 5000);
     app.listen(port, () => {
         console.log(`Serveur sécurisé sur http://localhost:${port}`);
+        console.log(`=== NOUVELLE VERSION V2 CHARGÉE AVEC SUCCÈS ===`);
     });
 }
 

@@ -53,7 +53,6 @@ class ArticleController {
         }
     }
 
-    // Correspond à : PUT /api/articles/:id
     async updateArticle(req, res) {
         try {
             const { id } = req.params;
